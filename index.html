@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrimeFlow — Aprovação de Email</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 32px; max-width: 640px; width: 100%; }
+    .badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-bottom: 20px; background: #2a1f00; color: #f59e0b; }
+    h1 { font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .section-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .info-box { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+    .draft-box { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+    textarea { width: 100%; background: transparent; border: none; color: #e5e5e5; font-size: 13px; line-height: 1.6; resize: vertical; min-height: 150px; outline: none; font-family: inherit; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn { flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-approve { background: #16a34a; color: white; }
+    .btn-edit { background: #2563eb; color: white; }
+    .btn-reject { background: #dc2626; color: white; }
+    .success { display: none; text-align: center; padding: 40px 20px; }
+    .success h2 { font-size: 18px; margin-bottom: 8px; }
+    .success p { font-size: 13px; color: #888; }
+  </style>
+</head>
+<body>
+<div class="card" id="main">
+  <span class="badge">⚠️ Revisão necessária</span>
+  <h1>Email requer aprovação</h1>
+  <p class="meta" id="meta">A carregar...</p>
+
+  <p class="section-label">Informação do email</p>
+  <div class="info-box" id="info">A carregar...</div>
+
+  <p class="section-label">Rascunho gerado pela AI</p>
+  <div class="draft-box">
+    <textarea id="draft">A carregar...</textarea>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-approve" onclick="enviar('aprovar')">✅ Aprovar e enviar</button>
+    <button class="btn btn-edit" onclick="enviar('editar')">✏️ Editar e enviar</button>
+    <button class="btn btn-reject" onclick="enviar('rejeitar')">❌ Rejeitar</button>
+  </div>
+</div>
+
+<div class="success" id="success">
+  <h2 id="success-title">Decisão registada</h2>
+  <p id="success-msg">Podes fechar esta página.</p>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const webhookUrl = params.get('webhook');
+
+  document.getElementById('meta').textContent =
+    'De: ' + (params.get('de') || '—') + '  |  Assunto: ' + (params.get('assunto') || '—');
+
+  document.getElementById('info').innerHTML =
+    '<b>Categoria:</b> ' + (params.get('categoria') || '—') + '<br>' +
+    '<b>Confiança:</b> ' + (params.get('confianca') || '—') + '<br>' +
+    '<b>Resumo:</b> ' + (params.get('resumo') || '—');
+
+  document.getElementById('draft').value = decodeURIComponent(params.get('rascunho') || '');
+
+  async function enviar(decisao) {
+    const rascunhoFinal = document.getElementById('draft').value;
+    const payload = { token, decisao, rascunho: rascunhoFinal };
+
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch(e) {}
+
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+
+    const msgs = {
+      'aprovar': ['✅ Email aprovado!', 'A resposta foi enviada automaticamente.'],
+      'editar': ['✏️ Versão editada enviada!', 'A tua versão foi enviada ao remetente.'],
+      'rejeitar': ['❌ Email rejeitado', 'O email não será respondido automaticamente.']
+    };
+    document.getElementById('success-title').textContent = msgs[decisao][0];
+    document.getElementById('success-msg').textContent = msgs[decisao][1];
+  }
+</script>
+</body>
+</html>
