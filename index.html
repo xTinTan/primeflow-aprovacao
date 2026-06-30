@@ -67,29 +67,35 @@
 
   document.getElementById('draft').value = decodeURIComponent(params.get('rascunho') || '');
 
-  async function enviar(decisao) {
-    const rascunhoFinal = document.getElementById('draft').value;
-    const payload = { token, decisao, rascunho: rascunhoFinal };
+async function enviar(decisao) {
+  const rascunhoFinal = document.getElementById('draft').value;
+  const payload = { 
+    token, 
+    decisao, 
+    rascunho: rascunhoFinal,
+    de: params.get('de'),
+    assunto: params.get('assunto')
+  };
 
-    try {
-      await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } catch(e) {}
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {}
 
-    document.getElementById('main').style.display = 'none';
-    document.getElementById('success').style.display = 'block';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
 
-    const msgs = {
-      'aprovar': ['✅ Email aprovado!', 'A resposta foi enviada automaticamente.'],
-      'editar': ['✏️ Versão editada enviada!', 'A tua versão foi enviada ao remetente.'],
-      'rejeitar': ['❌ Email rejeitado', 'O email não será respondido automaticamente.']
-    };
-    document.getElementById('success-title').textContent = msgs[decisao][0];
-    document.getElementById('success-msg').textContent = msgs[decisao][1];
-  }
+  const msgs = {
+    'aprovar': ['✅ Email aprovado!', 'A resposta foi enviada automaticamente.'],
+    'editar': ['✏️ Versão editada enviada!', 'A tua versão foi enviada ao remetente.'],
+    'rejeitar': ['❌ Email rejeitado', 'O email não será respondido automaticamente.']
+  };
+  document.getElementById('success-title').textContent = msgs[decisao][0];
+  document.getElementById('success-msg').textContent = msgs[decisao][1];
+}
 </script>
 </body>
 </html>
