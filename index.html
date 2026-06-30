@@ -14,7 +14,8 @@
     .section-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
     .info-box { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
     .draft-box { background: #111; border: 1px solid #222; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
-    textarea { width: 100%; background: transparent; border: none; color: #e5e5e5; font-size: 13px; line-height: 1.6; resize: vertical; min-height: 150px; outline: none; font-family: inherit; }
+    textarea { width: 100%; background: transparent; border: none; color: #e5e5e5; font-size: 13px; line-height: 1.6; resize: vertical; min-height: 150px; outline: none; font-family: inherit; cursor: default; }
+    textarea:not([readonly]) { cursor: text; border-bottom: 1px solid #444; }
     .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn { flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
     .btn:hover { opacity: 0.85; }
@@ -37,12 +38,12 @@
 
   <p class="section-label">Rascunho gerado pela AI</p>
   <div class="draft-box">
-    <textarea id="draft">A carregar...</textarea>
+    <textarea id="draft" readonly>A carregar...</textarea>
   </div>
 
   <div class="btn-row">
     <button class="btn btn-approve" onclick="enviar('aprovar')">✅ Aprovar e enviar</button>
-    <button class="btn btn-edit" onclick="enviar('editar')">✏️ Editar e enviar</button>
+    <button class="btn btn-edit" id="btn-editar" onclick="editarModo()">✏️ Editar e enviar</button>
     <button class="btn btn-reject" onclick="enviar('rejeitar')">❌ Rejeitar</button>
   </div>
 </div>
@@ -67,35 +68,44 @@
 
   document.getElementById('draft').value = decodeURIComponent(params.get('rascunho') || '');
 
-async function enviar(decisao) {
-  const rascunhoFinal = document.getElementById('draft').value;
-  const payload = { 
-    token, 
-    decisao, 
-    rascunho: rascunhoFinal,
-    de: params.get('de'),
-    assunto: params.get('assunto')
-  };
+  function editarModo() {
+    const draft = document.getElementById('draft');
+    const btn = document.getElementById('btn-editar');
+    draft.removeAttribute('readonly');
+    draft.focus();
+    btn.textContent = '✏️ Confirmar e enviar';
+    btn.onclick = () => enviar('editar');
+  }
 
-  try {
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch(e) {}
+  async function enviar(decisao) {
+    const rascunhoFinal = document.getElementById('draft').value;
+    const payload = {
+      token,
+      decisao,
+      rascunho: rascunhoFinal,
+      de: params.get('de'),
+      assunto: params.get('assunto')
+    };
 
-  document.getElementById('main').style.display = 'none';
-  document.getElementById('success').style.display = 'block';
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch(e) {}
 
-  const msgs = {
-    'aprovar': ['✅ Email aprovado!', 'A resposta foi enviada automaticamente.'],
-    'editar': ['✏️ Versão editada enviada!', 'A tua versão foi enviada ao remetente.'],
-    'rejeitar': ['❌ Email rejeitado', 'O email não será respondido automaticamente.']
-  };
-  document.getElementById('success-title').textContent = msgs[decisao][0];
-  document.getElementById('success-msg').textContent = msgs[decisao][1];
-}
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+
+    const msgs = {
+      'aprovar': ['✅ Email aprovado!', 'A resposta foi enviada automaticamente.'],
+      'editar': ['✏️ Versão editada enviada!', 'A tua versão foi enviada ao remetente.'],
+      'rejeitar': ['❌ Email rejeitado', 'O email não será respondido automaticamente.']
+    };
+    document.getElementById('success-title').textContent = msgs[decisao][0];
+    document.getElementById('success-msg').textContent = msgs[decisao][1];
+  }
 </script>
 </body>
 </html>
