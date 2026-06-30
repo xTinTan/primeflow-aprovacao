@@ -18,9 +18,12 @@
     textarea:not([readonly]) { cursor: text; border-bottom: 1px solid #444; }
     .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn { flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
-    .btn:hover { opacity: 0.85; }
+    .btn:hover:not(:disabled) { opacity: 0.85; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .btn-approve { background: #16a34a; color: white; }
     .btn-edit { background: #2563eb; color: white; }
+    .btn-cancel { background: #4a4a4a; color: white; }
+    .btn-send { background: #7c3aed; color: white; }
     .btn-reject { background: #dc2626; color: white; }
     .success { display: none; text-align: center; padding: 40px 20px; }
     .success h2 { font-size: 18px; margin-bottom: 8px; }
@@ -42,9 +45,9 @@
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-approve" onclick="enviar('aprovar')">✅ Aprovar e enviar</button>
-    <button class="btn btn-edit" id="btn-editar" onclick="editarModo()">✏️ Editar e enviar</button>
-    <button class="btn btn-reject" onclick="enviar('rejeitar')">❌ Rejeitar</button>
+    <button class="btn btn-approve" id="btn-aprovar" onclick="enviar('aprovar')">✅ Aprovar e enviar</button>
+    <button class="btn btn-edit" id="btn-editar" onclick="editarModo()">✏️ Editar</button>
+    <button class="btn btn-reject" id="btn-rejeitar" onclick="enviar('rejeitar')">❌ Rejeitar</button>
   </div>
 </div>
 
@@ -57,6 +60,7 @@
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
   const webhookUrl = params.get('webhook');
+  let rascunhoOriginal = '';
 
   document.getElementById('meta').textContent =
     'De: ' + (params.get('de') || '—') + '  |  Assunto: ' + (params.get('assunto') || '—');
@@ -66,15 +70,46 @@
     '<b>Confiança:</b> ' + (params.get('confianca') || '—') + '<br>' +
     '<b>Resumo:</b> ' + (params.get('resumo') || '—');
 
-  document.getElementById('draft').value = decodeURIComponent(params.get('rascunho') || '');
+  rascunhoOriginal = decodeURIComponent(params.get('rascunho') || '');
+  document.getElementById('draft').value = rascunhoOriginal;
 
   function editarModo() {
     const draft = document.getElementById('draft');
-    const btn = document.getElementById('btn-editar');
+    const btnEditar = document.getElementById('btn-editar');
+    const btnRejeitar = document.getElementById('btn-rejeitar');
+    const btnAprovar = document.getElementById('btn-aprovar');
+
     draft.removeAttribute('readonly');
     draft.focus();
-    btn.textContent = '✏️ Confirmar e enviar';
-    btn.onclick = () => enviar('editar');
+
+    btnEditar.textContent = '↩️ Cancelar edição';
+    btnEditar.className = 'btn btn-cancel';
+    btnEditar.onclick = cancelarEdicao;
+
+    btnRejeitar.disabled = true;
+
+    // Muda o aprovar para enviar versão editada
+    btnAprovar.textContent = '📤 Enviar versão editada';
+    btnAprovar.onclick = () => enviar('editar');
+  }
+
+  function cancelarEdicao() {
+    const draft = document.getElementById('draft');
+    const btnEditar = document.getElementById('btn-editar');
+    const btnRejeitar = document.getElementById('btn-rejeitar');
+    const btnAprovar = document.getElementById('btn-aprovar');
+
+    draft.value = rascunhoOriginal;
+    draft.setAttribute('readonly', true);
+
+    btnEditar.textContent = '✏️ Editar';
+    btnEditar.className = 'btn btn-edit';
+    btnEditar.onclick = editarModo;
+
+    btnRejeitar.disabled = false;
+
+    btnAprovar.textContent = '✅ Aprovar e enviar';
+    btnAprovar.onclick = () => enviar('aprovar');
   }
 
   async function enviar(decisao) {
